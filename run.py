@@ -1,19 +1,16 @@
 """
-TestForge W1 — single-pass pipeline.
-Analyze a Python file, generate tests, run them, report results.
-No repair loop yet (that's W2 / LangGraph).
+TestForge — agentic test generation pipeline.
+Uses LangGraph to run a self-correcting generate → run → repair loop.
 """
 import sys
 from pathlib import Path
 
-from testforge.analysis.analyzer import analyze_file
-from testforge.agent.generator import generate_pytest_suite
-from testforge.tools.run_tests import run_tests
+from testforge.agent.graph import run_agent
 
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python run.py <path-to-python-file>")
+        print("Usage: python run.py <path-to-python-file> [coverage-target] [max-iterations]")
         sys.exit(1)
 
     target = sys.argv[1]
@@ -21,51 +18,50 @@ def main():
         print(f"File not found: {target}")
         sys.exit(1)
 
-    source_code = Path(target).read_text(encoding="utf-8")
+    coverage_target = float(sys.argv[2]) if len(sys.argv) > 2 else 80.0
+    max_iterations = int(sys.argv[3]) if len(sys.argv) > 3 else 4
 
-    # 1. ANALYZE
-    print(f"[1/3] Analyzing {target}...")
-    metadata = analyze_file(target)
-    num_targets = len(metadata["functions"]) + sum(
-        len(c["methods"]) for c in metadata["classes"]
+    print(f"TestForge: generating tests for {target}")
+    print(f"  Coverage target: {coverage_target}%")
+    print(f"  Max iterations:  {max_iterations}")
+    print()
+
+    final_state = run_agent(
+        file_path=target,
+        max_iterations=max_iterations,
+        coverage_target=coverage_target,
     )
-    print(f"      Found {num_targets} test targets.")
 
-    # 2. GENERATE
-    print("[2/3] Generating tests via LLM...")
-    test_code = generate_pytest_suite(source_code, metadata, file_path=target)
-    print(f"      Generated {test_code.count('def test_')} test functions.")
+    result = final_state["test_result"]
+    iteration = final_state["iteration"]
+    strategy = final_state["strategy"]
 
-    # 3. RUN + MEASURE
-    print("[3/3] Running tests + measuring coverage...")
-    result = run_tests(test_code, target)
-
-    # Report
-    print("\n" + "=" * 50)
+    print("=" * 50)
     print("RESULTS")
     print("=" * 50)
-    print(f"  Tests passed:    {result['num_passed']}")
-    print(f"  Tests failed:    {result['num_failed']}")
-    print(f"  Errors:          {result['num_errors']}")
-    print(f"  Coverage:        {result['coverage_pct']}%")
+    print(f"  Iterations used: {iteration}")
+    print(f"  Final strategy:  {strategy}")
+    print(f"  Tests passed:    {result.get('num_passed', 0)}")
+    print(f"  Tests failed:    {result.get('num_failed', 0)}")
+    print(f"  Errors:          {result.get('num_errors', 0)}")
+    print(f"  Coverage:        {result.get('coverage_pct', 0)}%")
 
-    if result["uncovered_lines"]:
+    if result.get("uncovered_lines"):
         print(f"  Uncovered lines: {result['uncovered_lines']}")
 
-    if result["traceback"]:
+    if result.get("traceback"):
         print(f"\n--- Failures ---\n{result['traceback']}")
 
-    status = "PASS" if result["passed"] else "FAIL"
-    print(f"\n  Status: {status}")
+    status = final_state["status"]
+    print(f"\n  Status: {status.upper()}")
 
-    # Save the generated tests if they passed
-    if result["passed"]:
+    if status == "passed":
         out_name = f"test_{Path(target).stem}.py"
         out_path = Path("tests") / out_name
-        out_path.write_text(test_code, encoding="utf-8")
-        print(f"\n  Saved passing tests to: {out_path}")
+        out_path.write_text(final_state["test_code"], encoding="utf-8")
+        print(f"  Saved passing tests to: {out_path}")
 
-    return 0 if result["passed"] else 1
+    return 0 if status == "passed" else 1
 
 
 if __name__ == "__main__":
