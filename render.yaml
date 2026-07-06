@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: testforge
+    runtime: docker
+    plan: free
+    envVars:
+      - key: HF_TOKEN
+        sync: false
+      - key: MODEL_NAME
+        value: Qwen/Qwen3-Coder-30B-A3B-Instruct
