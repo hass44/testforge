@@ -10,7 +10,9 @@ from testforge.agent.graph import run_agent
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python run.py <path-to-python-file> [coverage-target] [max-iterations]")
+        print(
+            "Usage: python run.py <file> [coverage] [iters]"
+        )
         sys.exit(1)
 
     target = sys.argv[1]

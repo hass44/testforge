@@ -1,5 +1,5 @@
-from testforge.analysis.analyzer import analyze_file
 from testforge.agent.generator import generate_pytest_suite
+from testforge.analysis.analyzer import analyze_file
 
 
 def main():

@@ -36,7 +36,8 @@ def complete_run(run_id: str, final_state: dict[str, Any]) -> None:
         return
     result = final_state.get("test_result", {})
     coverage_target = final_state.get("coverage_target", 80.0)
-    passed = result.get("passed", False) and result.get("coverage_pct", 0) >= coverage_target
+    cov = result.get("coverage_pct", 0)
+    passed = result.get("passed", False) and cov >= coverage_target
 
     _runs[run_id]["status"] = "passed" if passed else "failed"
     _runs[run_id]["result"] = {

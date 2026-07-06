@@ -1,5 +1,7 @@
 import json
+
 from testforge.analysis.analyzer import analyze_file
+
 
 def main():
     target = "examples/calculator.py"

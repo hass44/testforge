@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from testforge.agent.graph import run_agent
@@ -18,7 +18,9 @@ from testforge.api.store import complete_run, create_run, fail_run, get_run
 
 app = FastAPI(
     title="TestForge",
-    description="Agentic test generation for Python — generates passing pytest suites with coverage verification.",
+    description=(
+        "Agentic test generation for Python"
+    ),
     version="0.1.0",
 )
 
@@ -26,8 +28,12 @@ app = FastAPI(
 # ── Request / response models ──────────────────────────────────
 
 class GenerateRequest(BaseModel):
-    source_code: str = Field(..., description="Python source code to generate tests for")
-    file_name: str = Field(default="module.py", description="Filename for the source (used for import path)")
+    source_code: str = Field(
+        ..., description="Python source code to test"
+    )
+    file_name: str = Field(
+        default="module.py", description="Source filename"
+    )
     coverage_target: float = Field(default=80.0, ge=0, le=100)
     max_iterations: int = Field(default=4, ge=1, le=10)
 

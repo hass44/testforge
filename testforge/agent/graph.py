@@ -11,6 +11,7 @@ Graph structure:
 from pathlib import Path
 from typing import Any
 
+import structlog
 from langgraph.graph import END, StateGraph
 
 from testforge.agent.nodes import (
@@ -23,6 +24,10 @@ from testforge.agent.nodes import (
 from testforge.agent.state import AgentState
 from testforge.analysis.analyzer import analyze_file
 from testforge.analysis.prompt_context import file_to_import_path
+from testforge.observability.logging import AgentTimer, get_logger, new_run_id
+from testforge.observability.tracking import track_run
+
+log = get_logger("testforge.agent.graph")
 
 
 def build_graph() -> StateGraph:
@@ -93,6 +98,12 @@ def run_agent(
     project_root: if set, import path is computed relative to this dir.
                   Used by the API when files are in a temp directory.
     """
+    run_id = new_run_id()
+    structlog.contextvars.bind_contextvars(run_id=run_id)
+
+    log.info("run_start", file_path=file_path, max_iterations=max_iterations,
+             coverage_target=coverage_target)
+
     source_code = open(file_path, encoding="utf-8").read()
     metadata = analyze_file(file_path)
     import_path = file_to_import_path(file_path, project_root=project_root)
@@ -115,15 +126,29 @@ def run_agent(
 
     app = compile_graph()
 
-    # .invoke() runs the graph to completion — it follows edges
-    # until it hits END. Each node updates the state dict.
-    final_state = app.invoke(initial_state)
+    with AgentTimer() as timer:
+        final_state = app.invoke(initial_state)
 
-    # Set the final status based on results
     result = final_state.get("test_result", {})
     if result.get("passed") and result.get("coverage_pct", 0) >= coverage_target:
         final_state["status"] = "passed"
     else:
         final_state["status"] = "failed"
 
+    log.info("run_end",
+             status=final_state["status"],
+             total_iterations=final_state.get("iteration", 0),
+             final_coverage=result.get("coverage_pct", 0),
+             total_duration_s=timer.elapsed)
+
+    track_run(
+        run_id=run_id,
+        file_path=file_path,
+        final_state=final_state,
+        max_iterations=max_iterations,
+        coverage_target=coverage_target,
+        total_duration_s=timer.elapsed,
+    )
+
+    structlog.contextvars.unbind_contextvars("run_id")
     return final_state

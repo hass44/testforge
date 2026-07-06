@@ -7,17 +7,20 @@ from huggingface_hub.errors import HfHubHTTPError
 
 from testforge.agent.prompts import (
     SYSTEM_GENERATE,
-    SYSTEM_REPAIR,
     SYSTEM_REGENERATE,
+    SYSTEM_REPAIR,
     build_generate_prompt,
-    build_repair_prompt,
     build_regenerate_prompt,
+    build_repair_prompt,
 )
 from testforge.agent.state import AgentState
 from testforge.analysis.prompt_context import build_context
-from testforge.tools.run_tests import run_tests
+from testforge.observability.logging import AgentTimer, get_logger
+from testforge.sandbox import execute_tests
 
 load_dotenv()
+
+log = get_logger("testforge.agent")
 
 
 def _call_llm(system: str, user: str) -> str:
@@ -65,7 +68,12 @@ def generate_node(state: AgentState) -> dict[str, Any]:
         import_path=state["import_path"],
     )
     prompt = build_generate_prompt(test_targets, state["source_code"])
-    test_code = _call_llm(SYSTEM_GENERATE, prompt)
+
+    log.info("llm_call_start", node="generate", iteration=state.get("iteration", 0))
+    with AgentTimer() as timer:
+        test_code = _call_llm(SYSTEM_GENERATE, prompt)
+    log.info("llm_call_end", node="generate", duration_s=timer.elapsed,
+             output_len=len(test_code))
 
     return {"test_code": test_code, "strategy": "generate"}
 
@@ -74,21 +82,35 @@ def generate_node(state: AgentState) -> dict[str, Any]:
 
 def run_node(state: AgentState) -> dict[str, Any]:
     """Run the current tests and measure coverage."""
-    result = run_tests(
-        state["test_code"],
-        state["file_path"],
-        project_root=state.get("project_root"),
-    )
+    iteration = state.get("iteration", 0)
+    log.info("test_run_start", iteration=iteration)
+
+    with AgentTimer() as timer:
+        result = execute_tests(
+            test_code=state["test_code"],
+            source_file=state["file_path"],
+            source_code=state["source_code"],
+            project_root=state.get("project_root"),
+        )
+
+    log.info("test_run_end",
+             iteration=iteration,
+             duration_s=timer.elapsed,
+             passed=result["passed"],
+             num_passed=result["num_passed"],
+             num_failed=result["num_failed"],
+             num_errors=result["num_errors"],
+             coverage_pct=result["coverage_pct"])
 
     new_history = list(state.get("history", []))
     new_history.append({
-        "iteration": state.get("iteration", 0),
+        "iteration": iteration,
         "test_result": result,
     })
 
     return {
         "test_result": result,
-        "iteration": state.get("iteration", 0) + 1,
+        "iteration": iteration + 1,
         "history": new_history,
     }
 
@@ -108,7 +130,12 @@ def repair_node(state: AgentState) -> dict[str, Any]:
         source_code=state["source_code"],
         test_targets=test_targets,
     )
-    test_code = _call_llm(SYSTEM_REPAIR, prompt)
+
+    log.info("llm_call_start", node="repair", iteration=state.get("iteration", 0))
+    with AgentTimer() as timer:
+        test_code = _call_llm(SYSTEM_REPAIR, prompt)
+    log.info("llm_call_end", node="repair", duration_s=timer.elapsed,
+             output_len=len(test_code))
 
     return {"test_code": test_code, "strategy": "repair"}
 
@@ -127,7 +154,12 @@ def regenerate_node(state: AgentState) -> dict[str, Any]:
         source_code=state["source_code"],
         test_targets=test_targets,
     )
-    test_code = _call_llm(SYSTEM_REGENERATE, prompt)
+
+    log.info("llm_call_start", node="regenerate", iteration=state.get("iteration", 0))
+    with AgentTimer() as timer:
+        test_code = _call_llm(SYSTEM_REGENERATE, prompt)
+    log.info("llm_call_end", node="regenerate", duration_s=timer.elapsed,
+             output_len=len(test_code))
 
     return {"test_code": test_code, "strategy": "regenerate"}
 
@@ -147,14 +179,21 @@ def decide(state: AgentState) -> str:
     target = state.get("coverage_target", 80.0)
 
     if result["passed"] and result["coverage_pct"] >= target:
+        log.info("decide", decision="done", reason="target_met",
+                 iteration=iteration, coverage_pct=result["coverage_pct"])
         return "done"
 
     if iteration >= max_iter:
+        log.info("decide", decision="done", reason="max_iterations",
+                 iteration=iteration, coverage_pct=result["coverage_pct"])
         return "done"
 
     if _is_stuck(state):
+        log.info("decide", decision="regenerate", reason="stuck_detected",
+                 iteration=iteration)
         return "regenerate"
 
+    log.info("decide", decision="repair", iteration=iteration)
     return "repair"
 
 

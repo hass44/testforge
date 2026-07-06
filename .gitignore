@@ -54,6 +54,10 @@ venv.bak/
 CLAUDE.md
 .claude/
 
+# MLflow
+mlruns/
+mlflow.db
+
 # OS files
 .DS_Store
 Thumbs.db

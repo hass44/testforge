@@ -67,7 +67,11 @@ def _extract_args(args: ast.arguments) -> list[dict[str, Any]]:
         result.append({
             "name": arg.arg,
             "annotation": _unparse_annotation(arg.annotation),
-            "default": ast.unparse(args.defaults[default_index]) if default_index >= 0 else None,
+            "default": (
+                ast.unparse(args.defaults[default_index])
+                if default_index >= 0
+                else None
+            ),
             "kind": "positional_only" if i < num_pos_only else "positional",
         })
 

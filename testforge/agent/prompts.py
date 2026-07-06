@@ -60,7 +60,9 @@ def build_repair_prompt(
 
     if test_result.get("uncovered_lines"):
         lines = ", ".join(str(ln) for ln in test_result["uncovered_lines"])
-        sections.append(f"## Uncovered lines in the source\nLines not exercised: [{lines}]")
+        sections.append(
+            f"## Uncovered lines\nNot exercised: [{lines}]"
+        )
 
     sections.append(f"## Original source code\n```python\n{source_code}\n```")
 
