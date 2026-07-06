@@ -1,9 +1,8 @@
 import os
+import re
 from typing import Any
 
 from dotenv import load_dotenv
-from huggingface_hub import InferenceClient
-from huggingface_hub.errors import HfHubHTTPError
 
 from testforge.agent.prompts import (
     SYSTEM_GENERATE,
@@ -24,32 +23,54 @@ log = get_logger("testforge.agent")
 
 
 def _call_llm(system: str, user: str) -> str:
-    """Shared LLM call used by all nodes. Returns raw text, fences stripped."""
-    import re
+    """
+    Unified LLM call via litellm. Supports any provider by
+    setting MODEL_NAME in .env with the litellm prefix:
 
-    model = os.getenv("MODEL_NAME", "Qwen/Qwen3-Coder-30B-A3B-Instruct")
-    token = os.getenv("HF_TOKEN")
-    if not token:
-        raise RuntimeError("HF_TOKEN not set — add it to your .env file")
+      gemini/gemini-2.0-flash       → Google Gemini
+      gpt-4o                        → OpenAI
+      claude-sonnet-4-20250514      → Anthropic
+      huggingface/Qwen/Qwen3-Coder  → HuggingFace
 
-    client = InferenceClient(token=token)
+    Set the matching API key env var:
+      GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, HF_TOKEN
+    """
+    import time
 
-    try:
-        response = client.chat_completion(
-            model=model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            temperature=0.0,
-            max_tokens=4096,
-        )
-    except HfHubHTTPError as e:
-        raise RuntimeError(
-            f"HuggingFace API error for model {model!r}. "
-            f"Try a different MODEL_NAME in .env.\n"
-            f"Original error: {e}"
-        ) from e
+    import litellm
+
+    model = os.getenv("MODEL_NAME", "gemini/gemini-2.0-flash")
+    max_retries = 3
+
+    for attempt in range(max_retries + 1):
+        try:
+            response = litellm.completion(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                temperature=0.0,
+                max_tokens=4096,
+            )
+            break
+        except litellm.RateLimitError as e:
+            if attempt < max_retries:
+                wait = 15 * (attempt + 1)
+                log.info("rate_limited", wait_s=wait,
+                         attempt=attempt + 1)
+                time.sleep(wait)
+            else:
+                raise RuntimeError(
+                    f"Rate limit exceeded after {max_retries} "
+                    f"retries for {model!r}."
+                ) from e
+        except Exception as e:
+            raise RuntimeError(
+                f"LLM call failed for model {model!r}.\n"
+                f"Check MODEL_NAME and API key in .env.\n"
+                f"Error: {e}"
+            ) from e
 
     raw = response.choices[0].message.content
     raw = raw.strip()
