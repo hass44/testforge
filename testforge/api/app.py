@@ -5,6 +5,7 @@ POST /generate   — submit a test generation job (returns run_id immediately)
 GET  /runs/{id}  — poll job status and results
 GET  /health     — health check
 """
+
 import asyncio
 import tempfile
 from pathlib import Path
@@ -18,22 +19,17 @@ from testforge.api.store import complete_run, create_run, fail_run, get_run
 
 app = FastAPI(
     title="TestForge",
-    description=(
-        "Agentic test generation for Python"
-    ),
+    description=("Agentic test generation for Python"),
     version="0.1.0",
 )
 
 
 # ── Request / response models ──────────────────────────────────
 
+
 class GenerateRequest(BaseModel):
-    source_code: str = Field(
-        ..., description="Python source code to test"
-    )
-    file_name: str = Field(
-        default="module.py", description="Source filename"
-    )
+    source_code: str = Field(..., description="Python source code to test")
+    file_name: str = Field(default="module.py", description="Source filename")
     coverage_target: float = Field(default=80.0, ge=0, le=100)
     max_iterations: int = Field(default=4, ge=1, le=10)
 
@@ -51,6 +47,7 @@ class RunStatus(BaseModel):
 
 
 # ── Background task runner ──────────────────────────────────────
+
 
 async def _run_agent_background(
     run_id: str,
@@ -74,6 +71,7 @@ async def _run_agent_background(
 
 
 # ── Endpoints ───────────────────────────────────────────────────
+
 
 @app.get("/health")
 def health():

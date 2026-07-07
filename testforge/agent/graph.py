@@ -8,6 +8,7 @@ Graph structure:
                        │
                        └──(regenerate)──► regenerate → run → decide → ...
 """
+
 from pathlib import Path
 from typing import Any
 
@@ -101,8 +102,12 @@ def run_agent(
     run_id = new_run_id()
     structlog.contextvars.bind_contextvars(run_id=run_id)
 
-    log.info("run_start", file_path=file_path, max_iterations=max_iterations,
-             coverage_target=coverage_target)
+    log.info(
+        "run_start",
+        file_path=file_path,
+        max_iterations=max_iterations,
+        coverage_target=coverage_target,
+    )
 
     source_code = open(file_path, encoding="utf-8").read()
     metadata = analyze_file(file_path)
@@ -135,11 +140,13 @@ def run_agent(
     else:
         final_state["status"] = "failed"
 
-    log.info("run_end",
-             status=final_state["status"],
-             total_iterations=final_state.get("iteration", 0),
-             final_coverage=result.get("coverage_pct", 0),
-             total_duration_s=timer.elapsed)
+    log.info(
+        "run_end",
+        status=final_state["status"],
+        total_iterations=final_state.get("iteration", 0),
+        final_coverage=result.get("coverage_pct", 0),
+        total_duration_s=timer.elapsed,
+    )
 
     track_run(
         run_id=run_id,

@@ -4,6 +4,7 @@ TestForge evaluation harness.
 Runs the agent across all sample modules and reports aggregate stats.
 Each run is logged to MLflow under the 'testforge-eval' experiment.
 """
+
 import sys
 import time
 from pathlib import Path
@@ -105,15 +106,13 @@ def print_summary(results: list[dict]) -> None:
     iterations = [r["iterations"] for r in results]
     durations = [r["duration_s"] for r in results]
 
-    print(f"\n  Success rate:    {passed}/{total} "
-          f"({100 * passed / total:.0f}%)")
+    print(f"\n  Success rate:    {passed}/{total} ({100 * passed / total:.0f}%)")
     print(f"  Mean coverage:   {sum(coverages) / total:.1f}%")
     print(f"  Mean iterations: {sum(iterations) / total:.1f}")
     print(f"  Total time:      {sum(durations):.0f}s")
 
     print("\n  Per-file results:")
-    print(f"  {'File':<25} {'Diff':<8} {'Status':<8} "
-          f"{'Cov%':<8} {'Iter':<6} {'Time'}")
+    print(f"  {'File':<25} {'Diff':<8} {'Status':<8} {'Cov%':<8} {'Iter':<6} {'Time'}")
     print("  " + "-" * 65)
     for r in results:
         print(
@@ -133,8 +132,7 @@ def print_summary(results: list[dict]) -> None:
             continue
         g_passed = sum(1 for r in group if r["status"] == "passed")
         g_cov = sum(r["coverage"] for r in group) / len(group)
-        print(f"    {diff:<8} {g_passed}/{len(group)} passed, "
-              f"mean cov {g_cov:.1f}%")
+        print(f"    {diff:<8} {g_passed}/{len(group)} passed, mean cov {g_cov:.1f}%")
 
 
 if __name__ == "__main__":

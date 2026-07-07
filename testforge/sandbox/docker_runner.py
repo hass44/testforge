@@ -11,6 +11,7 @@ Runs generated tests inside a locked-down container:
 The container receives source + test files via a bind-mounted temp dir,
 runs pytest+coverage inside, and prints a JSON result to stdout.
 """
+
 import json
 import subprocess
 import tempfile
@@ -22,7 +23,7 @@ _TIMEOUT = 45
 _MEMORY = "512m"
 _CPUS = "1"
 
-_RUNNER_SCRIPT = '''\
+_RUNNER_SCRIPT = """\
 import json
 import subprocess
 import sys
@@ -88,14 +89,16 @@ result = {
     "uncovered_lines": uncovered_lines,
 }
 print(json.dumps(result))
-'''
+"""
 
 
 def is_docker_available() -> bool:
     try:
         proc = subprocess.run(
             ["docker", "info"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         return proc.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -106,7 +109,9 @@ def is_image_built() -> bool:
     try:
         proc = subprocess.run(
             ["docker", "image", "inspect", _IMAGE],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         return proc.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -124,7 +129,10 @@ def build_image() -> None:
         df_path.write_text(dockerfile)
         subprocess.run(
             ["docker", "build", "-t", _IMAGE, "-f", str(df_path), tmp],
-            check=True, capture_output=True, text=True, timeout=120,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
 
 
@@ -144,19 +152,25 @@ def run_in_docker(
         (tmp / "runner.py").write_text(_RUNNER_SCRIPT, encoding="utf-8")
 
         docker_cmd = [
-            "docker", "run", "--rm",
+            "docker",
+            "run",
+            "--rm",
             "--network=none",
             f"--memory={_MEMORY}",
             f"--cpus={_CPUS}",
-            "-v", f"{tmp}:/workspace",
+            "-v",
+            f"{tmp}:/workspace",
             _IMAGE,
-            "python", "/workspace/runner.py",
+            "python",
+            "/workspace/runner.py",
         ]
 
         try:
             proc = subprocess.run(
                 docker_cmd,
-                capture_output=True, text=True, timeout=timeout,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
             )
         except subprocess.TimeoutExpired:
             return {

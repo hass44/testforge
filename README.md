@@ -46,11 +46,12 @@ The agent follows a **generate → run → decide** loop built as a LangGraph `S
 
 - **AST-based code analysis** — extracts functions, classes, signatures, async detection, raises
 - **Self-correcting agent loop** — 3-mode adaptive strategy with stuck detection
-- **Provider-agnostic LLM** — works with Gemini, OpenAI, Anthropic, or HuggingFace via litellm
+- **Provider-agnostic LLM** — works with Gemini, OpenAI, HuggingFace, and more via litellm
 - **Sandboxed execution** — Docker (network/memory/CPU isolation) or subprocess fallback
 - **Structured observability** — per-iteration traces with structlog, run-level correlation via context vars
 - **MLflow tracking** — params and metrics logged per run for experiment comparison
 - **FastAPI service** — async job API with file upload support
+- **Mutation testing** — verifies test quality by injecting bugs and measuring kill rate via mutmut
 - **CI/CD** — GitHub Actions (lint + test), Docker containerization, Render deployment
 
 ## Quick start
@@ -78,8 +79,8 @@ Set `MODEL_NAME` in `.env` with the litellm prefix:
 ```env
 MODEL_NAME=gemini/gemini-2.5-flash       # Google
 MODEL_NAME=gpt-4o                        # OpenAI
-MODEL_NAME=claude-sonnet-4-20250514      # Anthropic
 MODEL_NAME=huggingface/Qwen/Qwen3-Coder  # HuggingFace
+# See litellm docs for 100+ supported providers
 ```
 
 ## API
@@ -96,6 +97,16 @@ curl http://localhost:8000/runs/{run_id}
 # Interactive docs
 open http://localhost:8000/docs
 ```
+
+## Mutation testing
+
+After generating tests, verify their quality by running mutation testing:
+
+```bash
+python run.py examples/calculator.py --mutate
+```
+
+This injects small bugs (mutants) into the source code and checks whether the generated tests catch them. A high kill rate means the tests are robust.
 
 ## Run the evaluation
 
@@ -114,6 +125,7 @@ Runs the agent across 10 sample modules and reports aggregate stats (success rat
 | API | FastAPI |
 | Test execution | pytest + coverage.py |
 | Sandbox | Docker / subprocess |
+| Mutation testing | mutmut |
 | Observability | structlog (traces), MLflow (metrics) |
 | CI/CD | GitHub Actions, Docker, Render |
 

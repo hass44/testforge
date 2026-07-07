@@ -1,4 +1,5 @@
 """Medium: input validation with regex and rules."""
+
 import re
 
 

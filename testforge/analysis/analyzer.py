@@ -3,7 +3,6 @@ from typing import Any
 
 
 class SourceVisitor(ast.NodeVisitor):
-
     def __init__(self):
         self.functions: list[dict[str, Any]] = []
         self.classes: list[dict[str, Any]] = []
@@ -64,41 +63,49 @@ def _extract_args(args: ast.arguments) -> list[dict[str, Any]]:
 
     for i, arg in enumerate(args.posonlyargs + args.args):
         default_index = i - defaults_offset
-        result.append({
-            "name": arg.arg,
-            "annotation": _unparse_annotation(arg.annotation),
-            "default": (
-                ast.unparse(args.defaults[default_index])
-                if default_index >= 0
-                else None
-            ),
-            "kind": "positional_only" if i < num_pos_only else "positional",
-        })
+        result.append(
+            {
+                "name": arg.arg,
+                "annotation": _unparse_annotation(arg.annotation),
+                "default": (
+                    ast.unparse(args.defaults[default_index])
+                    if default_index >= 0
+                    else None
+                ),
+                "kind": "positional_only" if i < num_pos_only else "positional",
+            }
+        )
 
     if args.vararg:
-        result.append({
-            "name": args.vararg.arg,
-            "annotation": _unparse_annotation(args.vararg.annotation),
-            "default": None,
-            "kind": "var_positional",
-        })
+        result.append(
+            {
+                "name": args.vararg.arg,
+                "annotation": _unparse_annotation(args.vararg.annotation),
+                "default": None,
+                "kind": "var_positional",
+            }
+        )
 
     for i, arg in enumerate(args.kwonlyargs):
         default_node = args.kw_defaults[i]
-        result.append({
-            "name": arg.arg,
-            "annotation": _unparse_annotation(arg.annotation),
-            "default": ast.unparse(default_node) if default_node else None,
-            "kind": "keyword_only",
-        })
+        result.append(
+            {
+                "name": arg.arg,
+                "annotation": _unparse_annotation(arg.annotation),
+                "default": ast.unparse(default_node) if default_node else None,
+                "kind": "keyword_only",
+            }
+        )
 
     if args.kwarg:
-        result.append({
-            "name": args.kwarg.arg,
-            "annotation": _unparse_annotation(args.kwarg.annotation),
-            "default": None,
-            "kind": "var_keyword",
-        })
+        result.append(
+            {
+                "name": args.kwarg.arg,
+                "annotation": _unparse_annotation(args.kwarg.annotation),
+                "default": None,
+                "kind": "var_keyword",
+            }
+        )
 
     return result
 

@@ -2,17 +2,20 @@
 A simple calculator module to test our AST analyzer.
 """
 
+
 def add(a: int, b: int) -> int:
     """Add two numbers together."""
     return a + b
+
 
 def subtract(a: int, b: int) -> int:
     """Subtract b from a."""
     return a - b
 
+
 class AdvancedCalculator:
     """A class representing a calculator with memory."""
-    
+
     def __init__(self, initial_value: float = 0.0):
         """Initialize calculator with a starting value."""
         self.value = initial_value

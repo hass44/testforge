@@ -1,4 +1,5 @@
 """Medium: LRU cache implementation with eviction."""
+
 from collections import OrderedDict
 from typing import Any
 

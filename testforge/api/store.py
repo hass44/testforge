@@ -12,6 +12,7 @@ Each entry:
 
 Not persistent — restarts lose all runs. Fine for v1 demo.
 """
+
 import time
 import uuid
 from typing import Any

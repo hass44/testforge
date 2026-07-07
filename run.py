@@ -2,6 +2,7 @@
 TestForge — agentic test generation pipeline.
 Uses LangGraph to run a self-correcting generate → run → repair loop.
 """
+
 import sys
 from pathlib import Path
 
@@ -10,18 +11,19 @@ from testforge.agent.graph import run_agent
 
 def main():
     if len(sys.argv) < 2:
-        print(
-            "Usage: python run.py <file> [coverage] [iters]"
-        )
+        print("Usage: python run.py <file> [coverage] [iters]")
         sys.exit(1)
 
-    target = sys.argv[1]
-    if not Path(target).exists():
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    flags = [a for a in sys.argv[1:] if a.startswith("--")]
+
+    target = args[0] if args else None
+    if not target or not Path(target).exists():
         print(f"File not found: {target}")
         sys.exit(1)
 
-    coverage_target = float(sys.argv[2]) if len(sys.argv) > 2 else 80.0
-    max_iterations = int(sys.argv[3]) if len(sys.argv) > 3 else 4
+    coverage_target = float(args[1]) if len(args) > 1 else 80.0
+    max_iterations = int(args[2]) if len(args) > 2 else 4
 
     print(f"TestForge: generating tests for {target}")
     print(f"  Coverage target: {coverage_target}%")
@@ -63,7 +65,33 @@ def main():
         out_path.write_text(final_state["test_code"], encoding="utf-8")
         print(f"  Saved passing tests to: {out_path}")
 
+        if "--mutate" in flags:
+            _run_mutation(final_state["test_code"], target)
+
     return 0 if status == "passed" else 1
+
+
+def _run_mutation(test_code: str, source_file: str) -> None:
+    from testforge.tools.mutation import run_mutation_tests
+
+    print("\n" + "=" * 50)
+    print("MUTATION TESTING")
+    print("=" * 50)
+    mut = run_mutation_tests(
+        test_code=test_code,
+        source_file=source_file,
+    )
+    if mut.get("error"):
+        print(f"  Error: {mut['error']}")
+        return
+    print(f"  Mutants killed:    {mut['killed']}")
+    print(f"  Mutants survived:  {mut['survived']}")
+    print(f"  Total mutants:     {mut['total']}")
+    print(f"  Kill rate:         {mut['kill_rate']}%")
+    if mut["survivors"]:
+        print("\n  Surviving mutants:")
+        for s in mut["survivors"]:
+            print(f"    - {s}")
 
 
 if __name__ == "__main__":

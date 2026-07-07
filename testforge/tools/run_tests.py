@@ -43,11 +43,20 @@ def _run_pytest_with_coverage(
     cov_json_file = cov_dir / "coverage.json"
 
     pytest_cmd = [
-        _PYTHON, "-m", "coverage", "run",
-        "--data-file", str(cov_data_file),
-        "--include", str(source_path),
-        "-m", "pytest", str(test_file),
-        "-v", "--tb=short", "--no-header",
+        _PYTHON,
+        "-m",
+        "coverage",
+        "run",
+        "--data-file",
+        str(cov_data_file),
+        "--include",
+        str(source_path),
+        "-m",
+        "pytest",
+        str(test_file),
+        "-v",
+        "--tb=short",
+        "--no-header",
     ]
 
     try:
@@ -145,9 +154,14 @@ def _get_coverage(
 
     try:
         json_cmd = [
-            _PYTHON, "-m", "coverage", "json",
-            "--data-file", str(cov_data_file),
-            "-o", str(cov_json_file),
+            _PYTHON,
+            "-m",
+            "coverage",
+            "json",
+            "--data-file",
+            str(cov_data_file),
+            "-o",
+            str(cov_json_file),
         ]
         subprocess.run(json_cmd, capture_output=True, text=True, timeout=10)
     except (subprocess.TimeoutExpired, subprocess.CalledProcessError):

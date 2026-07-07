@@ -29,11 +29,9 @@ def _call_llm(system: str, user: str) -> str:
 
       gemini/gemini-2.0-flash       → Google Gemini
       gpt-4o                        → OpenAI
-      claude-sonnet-4-20250514      → Anthropic
       huggingface/Qwen/Qwen3-Coder  → HuggingFace
 
-    Set the matching API key env var:
-      GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, HF_TOKEN
+    Set the matching API key env var (see litellm docs for all providers).
     """
     import time
 
@@ -57,13 +55,11 @@ def _call_llm(system: str, user: str) -> str:
         except litellm.RateLimitError as e:
             if attempt < max_retries:
                 wait = 15 * (attempt + 1)
-                log.info("rate_limited", wait_s=wait,
-                         attempt=attempt + 1)
+                log.info("rate_limited", wait_s=wait, attempt=attempt + 1)
                 time.sleep(wait)
             else:
                 raise RuntimeError(
-                    f"Rate limit exceeded after {max_retries} "
-                    f"retries for {model!r}."
+                    f"Rate limit exceeded after {max_retries} retries for {model!r}."
                 ) from e
         except Exception as e:
             raise RuntimeError(
@@ -81,6 +77,7 @@ def _call_llm(system: str, user: str) -> str:
 
 # ── Node: generate ──────────────────────────────────────────────
 
+
 def generate_node(state: AgentState) -> dict[str, Any]:
     """First iteration: generate tests from scratch."""
     test_targets = build_context(
@@ -93,13 +90,18 @@ def generate_node(state: AgentState) -> dict[str, Any]:
     log.info("llm_call_start", node="generate", iteration=state.get("iteration", 0))
     with AgentTimer() as timer:
         test_code = _call_llm(SYSTEM_GENERATE, prompt)
-    log.info("llm_call_end", node="generate", duration_s=timer.elapsed,
-             output_len=len(test_code))
+    log.info(
+        "llm_call_end",
+        node="generate",
+        duration_s=timer.elapsed,
+        output_len=len(test_code),
+    )
 
     return {"test_code": test_code, "strategy": "generate"}
 
 
 # ── Node: run ───────────────────────────────────────────────────
+
 
 def run_node(state: AgentState) -> dict[str, Any]:
     """Run the current tests and measure coverage."""
@@ -114,20 +116,24 @@ def run_node(state: AgentState) -> dict[str, Any]:
             project_root=state.get("project_root"),
         )
 
-    log.info("test_run_end",
-             iteration=iteration,
-             duration_s=timer.elapsed,
-             passed=result["passed"],
-             num_passed=result["num_passed"],
-             num_failed=result["num_failed"],
-             num_errors=result["num_errors"],
-             coverage_pct=result["coverage_pct"])
+    log.info(
+        "test_run_end",
+        iteration=iteration,
+        duration_s=timer.elapsed,
+        passed=result["passed"],
+        num_passed=result["num_passed"],
+        num_failed=result["num_failed"],
+        num_errors=result["num_errors"],
+        coverage_pct=result["coverage_pct"],
+    )
 
     new_history = list(state.get("history", []))
-    new_history.append({
-        "iteration": iteration,
-        "test_result": result,
-    })
+    new_history.append(
+        {
+            "iteration": iteration,
+            "test_result": result,
+        }
+    )
 
     return {
         "test_result": result,
@@ -137,6 +143,7 @@ def run_node(state: AgentState) -> dict[str, Any]:
 
 
 # ── Node: repair ───────────────────────────────────────────────
+
 
 def repair_node(state: AgentState) -> dict[str, Any]:
     """Fix tests based on failure feedback."""
@@ -155,13 +162,18 @@ def repair_node(state: AgentState) -> dict[str, Any]:
     log.info("llm_call_start", node="repair", iteration=state.get("iteration", 0))
     with AgentTimer() as timer:
         test_code = _call_llm(SYSTEM_REPAIR, prompt)
-    log.info("llm_call_end", node="repair", duration_s=timer.elapsed,
-             output_len=len(test_code))
+    log.info(
+        "llm_call_end",
+        node="repair",
+        duration_s=timer.elapsed,
+        output_len=len(test_code),
+    )
 
     return {"test_code": test_code, "strategy": "repair"}
 
 
 # ── Node: regenerate ───────────────────────────────────────────
+
 
 def regenerate_node(state: AgentState) -> dict[str, Any]:
     """Start fresh when the model is stuck."""
@@ -179,13 +191,18 @@ def regenerate_node(state: AgentState) -> dict[str, Any]:
     log.info("llm_call_start", node="regenerate", iteration=state.get("iteration", 0))
     with AgentTimer() as timer:
         test_code = _call_llm(SYSTEM_REGENERATE, prompt)
-    log.info("llm_call_end", node="regenerate", duration_s=timer.elapsed,
-             output_len=len(test_code))
+    log.info(
+        "llm_call_end",
+        node="regenerate",
+        duration_s=timer.elapsed,
+        output_len=len(test_code),
+    )
 
     return {"test_code": test_code, "strategy": "regenerate"}
 
 
 # ── Conditional edge: decide ────────────────────────────────────
+
 
 def decide(state: AgentState) -> str:
     """
@@ -200,18 +217,32 @@ def decide(state: AgentState) -> str:
     target = state.get("coverage_target", 80.0)
 
     if result["passed"] and result["coverage_pct"] >= target:
-        log.info("decide", decision="done", reason="target_met",
-                 iteration=iteration, coverage_pct=result["coverage_pct"])
+        log.info(
+            "decide",
+            decision="done",
+            reason="target_met",
+            iteration=iteration,
+            coverage_pct=result["coverage_pct"],
+        )
         return "done"
 
     if iteration >= max_iter:
-        log.info("decide", decision="done", reason="max_iterations",
-                 iteration=iteration, coverage_pct=result["coverage_pct"])
+        log.info(
+            "decide",
+            decision="done",
+            reason="max_iterations",
+            iteration=iteration,
+            coverage_pct=result["coverage_pct"],
+        )
         return "done"
 
     if _is_stuck(state):
-        log.info("decide", decision="regenerate", reason="stuck_detected",
-                 iteration=iteration)
+        log.info(
+            "decide",
+            decision="regenerate",
+            reason="stuck_detected",
+            iteration=iteration,
+        )
         return "regenerate"
 
     log.info("decide", decision="repair", iteration=iteration)

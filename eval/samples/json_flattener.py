@@ -1,4 +1,5 @@
 """Hard: recursive JSON flattening and unflattening."""
+
 from typing import Any
 
 
@@ -8,9 +9,7 @@ def flatten(data: dict, separator: str = ".") -> dict[str, Any]:
     return result
 
 
-def _flatten_recursive(
-    obj: Any, prefix: str, sep: str, result: dict
-) -> None:
+def _flatten_recursive(obj: Any, prefix: str, sep: str, result: dict) -> None:
     if isinstance(obj, dict):
         for key, value in obj.items():
             new_key = f"{prefix}{sep}{key}" if prefix else key

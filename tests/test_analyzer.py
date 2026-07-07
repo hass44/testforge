@@ -1,4 +1,5 @@
 """Unit tests for the AST-based code analyzer."""
+
 import textwrap
 
 from testforge.analysis.analyzer import analyze_code

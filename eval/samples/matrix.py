@@ -28,10 +28,7 @@ class Matrix:
         return Matrix(result)
 
     def transpose(self) -> "Matrix":
-        result = [
-            [self.data[i][j] for i in range(self.rows)]
-            for j in range(self.cols)
-        ]
+        result = [[self.data[i][j] for i in range(self.rows)] for j in range(self.cols)]
         return Matrix(result)
 
     def scalar_multiply(self, scalar: float) -> "Matrix":

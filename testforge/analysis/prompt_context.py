@@ -28,14 +28,11 @@ def _build_lean(metadata: dict[str, Any], import_path: str | None = None) -> str
     lines: list[str] = []
     lines.append("# Test targets")
     lines.append(
-        "Write tests for every item below. "
-        "Full source code follows separately.\n"
+        "Write tests for every item below. Full source code follows separately.\n"
     )
 
     if import_path:
-        lines.append(
-            f"Import as: `from {import_path} import ...`\n"
-        )
+        lines.append(f"Import as: `from {import_path} import ...`\n")
 
     for func in metadata.get("functions", []):
         lines.append(_format_target(func, class_name=None))

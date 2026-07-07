@@ -1,6 +1,5 @@
 """Medium: unit conversion with validation."""
 
-
 CONVERSIONS = {
     ("celsius", "fahrenheit"): lambda c: c * 9 / 5 + 32,
     ("fahrenheit", "celsius"): lambda f: (f - 32) * 5 / 9,
@@ -20,14 +19,10 @@ def convert(value: float, from_unit: str, to_unit: str) -> float:
 
     key = (from_unit, to_unit)
     if key not in CONVERSIONS:
-        raise ValueError(
-            f"Unknown conversion: {from_unit} -> {to_unit}"
-        )
+        raise ValueError(f"Unknown conversion: {from_unit} -> {to_unit}")
 
     return round(CONVERSIONS[key](value), 4)
 
 
-def batch_convert(
-    values: list[float], from_unit: str, to_unit: str
-) -> list[float]:
+def batch_convert(values: list[float], from_unit: str, to_unit: str) -> list[float]:
     return [convert(v, from_unit, to_unit) for v in values]
