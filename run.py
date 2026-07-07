@@ -91,7 +91,8 @@ def _run_mutation(test_code: str, source_file: str) -> None:
     if mut["survivors"]:
         print("\n  Surviving mutants:")
         for s in mut["survivors"]:
-            print(f"    - {s}")
+            safe = s.encode("ascii", errors="replace").decode("ascii")
+            print(f"    - {safe}")
 
 
 if __name__ == "__main__":

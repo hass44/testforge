@@ -19,14 +19,20 @@ SAMPLES_DIR = Path(__file__).parent / "samples"
 SAMPLES = [
     ("math_utils.py", "easy"),
     ("string_ops.py", "easy"),
+    ("ast_filter.py", "easy"),
+    ("functional.py", "easy"),
     ("stack.py", "medium"),
     ("converter.py", "medium"),
     ("cache.py", "medium"),
     ("validator.py", "medium"),
+    ("decorrelation.py", "medium"),
+    ("structural.py", "medium"),
     ("linked_list.py", "hard"),
     ("matrix.py", "hard"),
     ("rate_limiter.py", "hard"),
     ("json_flattener.py", "hard"),
+    ("flops.py", "hard"),
+    ("sandbox.py", "hard"),
 ]
 
 
