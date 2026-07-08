@@ -50,7 +50,7 @@ venv.bak/
 *.swp
 *.swo
 
-# Claude Code config (local only)
+# Local config
 CLAUDE.md
 .claude/
 

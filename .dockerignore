@@ -4,7 +4,6 @@ __pycache__/
 .git/
 .env
 .claude/
-CLAUDE.md
 mlruns/
 mlflow.db
 .pytest_cache/
