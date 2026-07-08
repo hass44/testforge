@@ -4,7 +4,7 @@ services:
     runtime: docker
     plan: free
     envVars:
-      - key: HF_TOKEN
-        sync: false
       - key: MODEL_NAME
-        value: Qwen/Qwen3-Coder-30B-A3B-Instruct
+        value: gemini/gemini-2.5-flash
+      - key: GEMINI_API_KEY
+        sync: false
